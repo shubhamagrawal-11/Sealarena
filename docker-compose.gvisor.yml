@@ -1,0 +1,27 @@
+version: '3.8'
+
+# gVisor (runsc) overlay for SealArena
+# Usage: docker compose -f docker-compose.yml -f docker-compose.gvisor.yml up
+# Requires gVisor runtime installed on host: https://gvisor.dev/docs/user_guide/install/
+
+services:
+  arbiter:
+    runtime: runsc
+
+  red-runner:
+    runtime: runsc
+
+  blue-runner:
+    runtime: runsc
+
+  llm-target:
+    runtime: runsc
+
+  audit-ledger:
+    runtime: runsc
+
+  monitor:
+    runtime: runsc
+
+  dashboard:
+    runtime: runsc

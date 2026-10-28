@@ -1,0 +1,230 @@
+version: '3.8'
+
+networks:
+  red-net:
+    driver: bridge
+    internal: true
+  blue-net:
+    driver: bridge
+    internal: true
+  model-net:
+    driver: bridge
+    internal: true
+  admin-net:
+    driver: bridge
+    internal: true
+  public-net:
+    driver: bridge
+
+services:
+  arbiter:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: sealarena-arbiter
+    command: ["python", "-m", "src.arbiter.main"]
+    environment:
+      - SERVICE_ROLE=arbiter
+      - PORT=8000
+      - PYTHONUNBUFFERED=1
+    networks:
+      - red-net
+      - blue-net
+      - model-net
+      - admin-net
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./configs/seccomp-profile.json
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+          pids: 60
+    restart: unless-stopped
+
+  red-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: sealarena-red-runner
+    command: ["python", "-m", "src.red_runner.main"]
+    environment:
+      - SERVICE_ROLE=red-runner
+      - ARBITER_URL=https://arbiter:8000
+      - PYTHONUNBUFFERED=1
+    networks:
+      - red-net
+    depends_on:
+      - arbiter
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./configs/seccomp-profile.json
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+          pids: 50
+    restart: unless-stopped
+
+  blue-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: sealarena-blue-runner
+    command: ["python", "-m", "src.blue_runner.main"]
+    environment:
+      - SERVICE_ROLE=blue-runner
+      - ARBITER_URL=https://arbiter:8000
+      - PYTHONUNBUFFERED=1
+    networks:
+      - blue-net
+    depends_on:
+      - arbiter
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./configs/seccomp-profile.json
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+          pids: 50
+    restart: unless-stopped
+
+  llm-target:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: sealarena-llm-target
+    command: ["python", "-m", "src.llm_target.main"]
+    environment:
+      - SERVICE_ROLE=llm-target
+      - PORT=8001
+      - USE_MOCK=true
+      - PYTHONUNBUFFERED=1
+    networks:
+      - model-net
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./configs/seccomp-profile.json
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+          pids: 50
+    restart: unless-stopped
+
+  audit-ledger:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: sealarena-audit-ledger
+    command: ["python", "-m", "src.audit_ledger.main"]
+    environment:
+      - SERVICE_ROLE=audit-ledger
+      - PORT=8003
+      - PYTHONUNBUFFERED=1
+    networks:
+      - admin-net
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./configs/seccomp-profile.json
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+          pids: 50
+    restart: unless-stopped
+
+  monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: sealarena-monitor
+    command: ["python", "-m", "src.monitor.main"]
+    environment:
+      - SERVICE_ROLE=monitor
+      - PORT=8004
+      - ARBITER_URL=http://arbiter:8000
+      - LEDGER_URL=http://audit-ledger:8003
+      - PYTHONUNBUFFERED=1
+    networks:
+      - admin-net
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./configs/seccomp-profile.json
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+          pids: 50
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.service
+    container_name: sealarena-dashboard
+    command: ["python", "-m", "src.dashboard.main"]
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVICE_ROLE=dashboard
+      - PORT=8080
+      - ARBITER_URL=http://arbiter:8000
+      - LEDGER_URL=http://audit-ledger:8003
+      - MONITOR_URL=http://monitor:8004
+      - PYTHONUNBUFFERED=1
+    networks:
+      - admin-net
+      - public-net
+    security_opt:
+      - no-new-privileges:true
+      - seccomp:./configs/seccomp-profile.json
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    deploy:
+      resources:
+        limits:
+          cpus: '0.50'
+          memory: 256M
+          pids: 50
+    restart: unless-stopped

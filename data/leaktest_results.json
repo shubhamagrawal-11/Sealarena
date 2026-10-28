@@ -1,0 +1,192 @@
+{
+  "timestamp": 1793208338.1291072,
+  "total_tests": 9,
+  "baseline_leaks": 9,
+  "sealarena_leaks": 0,
+  "baseline_results": [
+    {
+      "test_name": "Direct Network Segmentation Scan",
+      "vector": "Cross-Tenant TCP/IP Probing",
+      "leaked": true,
+      "details": [
+        "Direct TCP connection to blue-runner:8002 established (shared bridge network)",
+        "Direct TCP connection to llm-target:8001 established (unmediated model access)"
+      ],
+      "guarantee": "Red and Blue share NO common network bridge. Red cannot route to Model directly."
+    },
+    {
+      "test_name": "DNS & Network Topology Enumeration",
+      "vector": "DNS Snooping & Host Discovery",
+      "leaked": true,
+      "details": [
+        "Foreign host 'blue-runner' resolved to 172.18.0.4 (Docker internal DNS leak)",
+        "Foreign host 'llm-target' resolved to 172.18.0.5"
+      ],
+      "guarantee": "No DNS records for foreign tenant containers exposed in tenant namespace."
+    },
+    {
+      "test_name": "Filesystem & /proc Snooping",
+      "vector": "Cross-Container Process & Storage Inspection",
+      "leaked": true,
+      "details": [
+        "Discovered shared volume /shared containing blue_rules_plain.json",
+        "Host /proc accessible: observed foreign PID 42 cmdline: 'python -m blue_runner'",
+        "Environment variable leak: BLUE_ENCRYPTION_KEY found in process environment"
+      ],
+      "guarantee": "No shared volumes; read-only rootfs; isolated PID/mount namespaces; no /proc leakage."
+    },
+    {
+      "test_name": "Docker Socket & Privilege Escape",
+      "vector": "Container Breakout & Host Daemon Control",
+      "leaked": true,
+      "details": [
+        "CRITICAL: /var/run/docker.sock mounted inside container! Root host takeover possible.",
+        "Container running as root (UID 0) with CAP_SYS_ADMIN enabled."
+      ],
+      "guarantee": "No docker.sock; cap_drop ALL; no-new-privileges; strict seccomp profile."
+    },
+    {
+      "test_name": "Timing Side-Channel Classifier",
+      "vector": "Response Latency Statistical Inference",
+      "leaked": true,
+      "accuracy": 1.0,
+      "details": [
+        "Attacker classifier accuracy: 100.0% (HIGH LEAKAGE)",
+        "Attacker easily distinguishes Blue rule hits (3ms) from Model inference (350ms)"
+      ],
+      "guarantee": "Arbiter normalizes response latency into quantized window with jitter; accuracy ~ chance."
+    },
+    {
+      "test_name": "LLM Cache Probing & Contamination",
+      "vector": "Cross-Session KV-Cache & Memory Context Bleed",
+      "leaked": true,
+      "details": [
+        "Cross-session contamination verified: Session B successfully retrieved secret 'OMEGA_BLUE_77' stored by Session A",
+        "Shared KV-cache collision: identical prompt prefix yielded identical attention key-value states"
+      ],
+      "guarantee": "Per-session isolated context, unique cache salt per session, zero state carryover."
+    },
+    {
+      "test_name": "Canary Token Boundary Exfiltration",
+      "vector": "Prompt Injection & System Instruction Extraction",
+      "leaked": true,
+      "details": [
+        "CRITICAL LEAK: Attacker received raw system canary: CANARY_SYS_9f83a0bc",
+        "No boundary scanner in place; unmediated model responses pass directly to tenant."
+      ],
+      "guarantee": "Multi-tier canaries embedded in model & rules; boundary scanner drops exfiltrations."
+    },
+    {
+      "test_name": "Audit Ledger Tampering & Forgery",
+      "vector": "Cryptographic Log Modification & Signature Spoofing",
+      "leaked": true,
+      "details": [
+        "Log tampering succeeded: Plain JSON log modified without detection",
+        "No cryptographic hash chain or digital signatures present in baseline logging"
+      ],
+      "guarantee": "Append-only SHA-256 hash chain, Ed25519 signatures, and Merkle root checkpoints."
+    },
+    {
+      "test_name": "Resource Exhaustion & Noisy Neighbor DoS",
+      "vector": "Cgroup Saturation & Process Exhaustion",
+      "leaked": true,
+      "details": [
+        "BLAST RADIUS LEAK: Unbounded container spawned 5,000 threads, causing host kernel OOM",
+        "Blue runner and Model target starved of CPU/memory; services dropped incoming requests"
+      ],
+      "guarantee": "Per-container cgroup limits (cpu/mem/pids), fair queuing, and token-bucket rate limiting."
+    }
+  ],
+  "sealarena_results": [
+    {
+      "test_name": "Direct Network Segmentation Scan",
+      "vector": "Cross-Tenant TCP/IP Probing",
+      "leaked": false,
+      "details": [
+        "All direct TCP cross-tenant connection attempts dropped (EHOSTUNREACH/ETIMEDOUT)"
+      ],
+      "guarantee": "Red and Blue share NO common network bridge. Red cannot route to Model directly."
+    },
+    {
+      "test_name": "DNS & Network Topology Enumeration",
+      "vector": "DNS Snooping & Host Discovery",
+      "leaked": false,
+      "details": [
+        "DNS enumeration blocked: foreign hostnames do not resolve in isolated tenant network"
+      ],
+      "guarantee": "No DNS records for foreign tenant containers exposed in tenant namespace."
+    },
+    {
+      "test_name": "Filesystem & /proc Snooping",
+      "vector": "Cross-Container Process & Storage Inspection",
+      "leaked": false,
+      "details": [
+        "Filesystem isolation verified: no shared volumes, tmpfs is private, PID namespace isolated"
+      ],
+      "guarantee": "No shared volumes; read-only rootfs; isolated PID/mount namespaces; no /proc leakage."
+    },
+    {
+      "test_name": "Docker Socket & Privilege Escape",
+      "vector": "Container Breakout & Host Daemon Control",
+      "leaked": false,
+      "details": [
+        "Zero docker.sock mounts detected; non-root user (UID 1000); cap_drop ALL active"
+      ],
+      "guarantee": "No docker.sock; cap_drop ALL; no-new-privileges; strict seccomp profile."
+    },
+    {
+      "test_name": "Timing Side-Channel Classifier",
+      "vector": "Response Latency Statistical Inference",
+      "leaked": false,
+      "accuracy": 0.4888888888888889,
+      "details": [
+        "Attacker classifier accuracy: 48.9% (~50% chance level / random guess)",
+        "Fixed-time padding and jitter eliminates side-channel timing correlation"
+      ],
+      "guarantee": "Arbiter normalizes response latency into quantized window with jitter; accuracy ~ chance."
+    },
+    {
+      "test_name": "LLM Cache Probing & Contamination",
+      "vector": "Cross-Session KV-Cache & Memory Context Bleed",
+      "leaked": false,
+      "details": [
+        "Context isolation verified: Session B returned zero knowledge of Session A secrets",
+        "Session A salt: 33f83fb0 != Session B salt: 6bc90b1d"
+      ],
+      "guarantee": "Per-session isolated context, unique cache salt per session, zero state carryover."
+    },
+    {
+      "test_name": "Canary Token Boundary Exfiltration",
+      "vector": "Prompt Injection & System Instruction Extraction",
+      "leaked": false,
+      "details": [
+        "Canary boundary scanner triggered: blocked exfiltration of 'CANARY_SYS_9f83a0bc'",
+        "Response quarantined; alert dispatched to audit ledger and security monitor",
+        "Attacker received 0 canary tokens (sanitized: 'Certainly! My system instructi...')"
+      ],
+      "guarantee": "Multi-tier canaries embedded in model & rules; boundary scanner drops exfiltrations."
+    },
+    {
+      "test_name": "Audit Ledger Tampering & Forgery",
+      "vector": "Cryptographic Log Modification & Signature Spoofing",
+      "leaked": false,
+      "details": [
+        "Forensic verifier caught forgery attempt: Content tampering detected at block 1! Hash mismatch: expected 5de05f66b861f52bd8d6413717be5378fcd735e6e144f228586aa18e426319df, computed 6c0e90ba96a5420ab4e43e741c1f009860cc2dee14c30c89a30e5259abc6cbde",
+        "Ed25519 signature verification rejected forged attacker key"
+      ],
+      "guarantee": "Append-only SHA-256 hash chain, Ed25519 signatures, and Merkle root checkpoints."
+    },
+    {
+      "test_name": "Resource Exhaustion & Noisy Neighbor DoS",
+      "vector": "Cgroup Saturation & Process Exhaustion",
+      "leaked": false,
+      "details": [
+        "Rate limiter contained Red burst: 20 allowed within quota, 30 rate-limited (HTTP 429)",
+        "Fair queueing verified: Blue tenant availability unaffected (Blue token granted: True)",
+        "Cgroup limits enforce pids=50, memory=256MB, cpus=0.50 per container"
+      ],
+      "guarantee": "Per-container cgroup limits (cpu/mem/pids), fair queuing, and token-bucket rate limiting."
+    }
+  ],
+  "scoreboard_text": "\n================================================================================\n              SEALARENA SECURITY & LEAKAGE EVALUATION SCOREBOARD\n         Comparative Multi-Tenant Sandbox Proof: Baseline vs SealArena\n================================================================================\n#   | Attack Vector                          | Naive Baseline   | SealArena     \n--------------------------------------------------------------------------------\n1   | Direct Network Segmentation Scan       | [X] LEAKED       | [OK] SECURE   \n2   | DNS & Network Topology Enumeration     | [X] LEAKED       | [OK] SECURE   \n3   | Filesystem & /proc Snooping            | [X] LEAKED       | [OK] SECURE   \n4   | Docker Socket & Privilege Escape       | [X] LEAKED       | [OK] SECURE   \n5   | Timing Side-Channel Classifier         | [X] LEAKED       | [OK] SECURE   \n6   | LLM Cache Probing & Contamination      | [X] LEAKED       | [OK] SECURE   \n7   | Canary Token Boundary Exfiltration     | [X] LEAKED       | [OK] SECURE   \n8   | Audit Ledger Tampering & Forgery       | [X] LEAKED       | [OK] SECURE   \n9   | Resource Exhaustion & Noisy Neighbor D | [X] LEAKED       | [OK] SECURE   \n--------------------------------------------------------------------------------\nTOTAL SCORE: Baseline Leaks: 9/9 (FAILED)  |  SealArena Leaks: 0/9 (100% SECURE)\n================================================================================\n\n[*] QUANTIFIED TIMING CHANNEL PROOF:\n    - Naive Baseline Attacker Classifier Accuracy: 100.0% (Rule Inference Feasible)\n    - SealArena Padded Attacker Classifier Accuracy: 48.9% (~50% Chance / Zero Leakage)\n================================================================================\n"
+}

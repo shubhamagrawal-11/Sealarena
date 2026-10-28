@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "canary": "CANARY_BLUE_e4b17c92",
+  "blocked_keywords": [
+    "jailbreak",
+    "dan mode",
+    "unrestricted ai",
+    "bypass safeguards",
+    "ignore all previous instructions",
+    "how to build a bomb",
+    "synthesize nerve agent",
+    "steal credentials",
+    "privilege escalation",
+    "exfiltrate data",
+    "disable security controls"
+  ],
+  "blocked_patterns": [
+    "(?i)ignore\\s+(all\\s+)?(previous|prior)\\s+(instructions|rules)",
+    "(?i)you\\s+are\\s+now\\s+(unfiltered|unrestricted|DAN)",
+    "(?i)act\\s+as\\s+an\\s+evil\\s+assistant",
+    "(?i)reveal\\s+(system\\s+prompt|canary|secret)"
+  ],
+  "sensitivity_threshold": 0.75
+}

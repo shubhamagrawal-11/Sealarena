@@ -1,0 +1,37 @@
+{
+  "defaultAction": "SCMP_ACT_ALLOW",
+  "architectures": [
+    "SCMP_ARCH_X86_64",
+    "SCMP_ARCH_X86",
+    "SCMP_ARCH_AARCH64"
+  ],
+  "syscalls": [
+    {
+      "names": [
+        "ptrace",
+        "process_vm_readv",
+        "process_vm_writev",
+        "bpf",
+        "perf_event_open",
+        "mount",
+        "umount",
+        "umount2",
+        "pivot_root",
+        "reboot",
+        "kexec_load",
+        "kexec_file_load",
+        "sys_chroot",
+        "keyctl",
+        "add_key",
+        "request_key",
+        "userfaultfd",
+        "lookup_dcookie",
+        "vm86",
+        "vm86old"
+      ],
+      "action": "SCMP_ACT_ERRNO",
+      "args": [],
+      "comment": "Block dangerous syscalls used for container escape, process inspection, memory tampering, and hardware perf counter side-channels"
+    }
+  ]
+}
